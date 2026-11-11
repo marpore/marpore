@@ -1,3 +1,4 @@
+<!-- The picture is redrawn every morning by .github/workflows/city.yml and served from the `output` branch. -->
 <a href="https://github.com/marpore/marpore/tree/main/city">
   <img src="https://raw.githubusercontent.com/marpore/marpore/output/city.svg" width="100%"
        alt="A city skyline drawn from my commit history: one building per hour of the day, under today's sky">
