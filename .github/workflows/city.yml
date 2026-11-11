@@ -1,0 +1,52 @@
+name: City
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 06:00 JST, so the picture shows the day ahead
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["city/**", ".github/workflows/city.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: city
+  cancel-in-progress: true
+
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Draw the city
+        id: draw
+        env:
+          GH_TOKEN: ${{ secrets.CITY_TOKEN }}
+          CITY_LAT: ${{ vars.CITY_LAT }}
+          CITY_LON: ${{ vars.CITY_LON }}
+          CITY_TZ: ${{ vars.CITY_TZ }}
+          CITY_IGNORE_LANGS: ${{ vars.CITY_IGNORE_LANGS }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::The CITY_TOKEN secret is not set, so the picture was not redrawn."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 city/generate.py --out dist/city.svg
+
+      # The picture lives on its own branch, replaced on every run, so `main` keeps a clean history.
+      - name: Publish to the output branch
+        if: steps.draw.outputs.skip != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          git init -q -b output
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add city.svg
+          git commit -q -m "Update city"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" output
